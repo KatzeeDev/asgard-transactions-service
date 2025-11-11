@@ -10,8 +10,12 @@ import logging
 load_dotenv()
 
 from flask import Flask, request, jsonify
-from db import get_transaction_by_order, get_transaction_by_id, insert_transaction
-from utils import generate_transaction_id
+from services import (
+    create_transaction,
+    get_transaction,
+    list_transactions,
+    ValidationError,
+)
 
 # logging setup
 logging.basicConfig(
@@ -19,18 +23,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Constants
-ALLOWED_CURRENCIES = ("CLP", "USD", "EUR")
-ALLOWED_TRANSACTION_TYPES = ("AUTH", "CAPTURE", "REFUND")
-
 app = Flask(__name__)
 
 
-@app.route("/transactions", methods=["POST"])
-def create_transaction():
-    """Create a new transaction"""
-    data = request.get_json()
+# ge transactions, all of them
+@app.route("/transactions", methods=["GET"])
+def list_transactions_endpoint():
+    """
+    endpoint to get all transactions
+    example: GET /transactions
+    """
+    try:
+        result = list_transactions()
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error listing transactions: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
 
+
+# create a type of transacition
+@app.route("/transactions", methods=["POST"])
+def create_transaction_endpoint():
+    """
+    endpoint to create a new transaction
+
+    expected JSON body:
+    {
+        "type": "AUTH|CAPTURE|REFUND",
+        "amount": float,
+        "currency": "CLP|USD|EUR",
+        "merchant_id": str,
+        "order_reference": str,
+        "parent_transaction_id": str (optional, required for CAPTURE/REFUND),
+        "metadata": {} (optional)
+    }
+    """
+    # validations
+    data = request.get_json()
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
@@ -40,7 +69,7 @@ def create_transaction():
         if field not in data:
             return jsonify({"error": f"{field} is required"}), 400
 
-    # some fields
+    # extract
     transaction_type = data["type"]
     amount = data["amount"]
     currency = data["currency"]
@@ -50,76 +79,8 @@ def create_transaction():
     metadata = data.get("metadata")
 
     try:
-        # check if transaction already exists -> idempotency
-        existing = get_transaction_by_order(merchant_id, order_reference)
-        if existing:
-            logger.info(f"Transaction already exists: {existing['transaction_id']}")
-            return (
-                jsonify(
-                    {
-                        "message": "Transaction already exists",
-                        "transaction_id": existing["transaction_id"],
-                        "status": existing["status"],
-                    }
-                ),
-                200,
-            )
-
-        # validate amount
-        try:
-            amount = float(amount)
-            if amount <= 0:
-                return jsonify({"error": "Amount must be greater than zero"}), 400
-        except (TypeError, ValueError):
-            return jsonify({"error": "Invalid amount"}), 400
-
-        # validate some currency
-        if currency not in ALLOWED_CURRENCIES:
-            return jsonify({"error": f"Currency must be one of {', '.join(ALLOWED_CURRENCIES)}"}), 400
-
-        # validate transaction type
-        if transaction_type not in ALLOWED_TRANSACTION_TYPES:
-            return jsonify({"error": f"Type must be one of {', '.join(ALLOWED_TRANSACTION_TYPES)}"}), 400
-
-        # first try to create some bussines rule: CAPTURE and REFUND need parent_transaction_id
-        if transaction_type in ("CAPTURE", "REFUND"):
-            if not parent_transaction_id:
-                return (
-                    jsonify(
-                        {"error": f"{transaction_type} requires parent_transaction_id"}
-                    ),
-                    400,
-                )
-
-            # verify if parent exists
-            parent = get_transaction_by_id(parent_transaction_id)
-            if not parent:
-                return jsonify({"error": "Parent transaction not found"}), 400
-
-            # validate parent type
-            if transaction_type == "CAPTURE" and parent["type"] != "AUTH":
-                return jsonify({"error": "CAPTURE must reference an AUTH"}), 400
-
-            if transaction_type == "REFUND" and parent["type"] not in (
-                "AUTH",
-                "CAPTURE",
-            ):
-                return jsonify({"error": "REFUND must reference AUTH or CAPTURE"}), 400
-
-        # some bussines rule: AUTH should not have parent
-        if transaction_type == "AUTH" and parent_transaction_id:
-            return jsonify({"error": "AUTH cannot have parent_transaction_id"}), 400
-
-        #  metadata if provided
-        if metadata and not isinstance(metadata, dict):
-            return jsonify({"error": "metadata must be a JSON object"}), 400
-
-        # generate transaction ID
-        transaction_id = generate_transaction_id(transaction_type)
-
-        # insert into database
-        insert_transaction(
-            transaction_id=transaction_id,
+        # delegate all business logic to services.py
+        result = create_transaction(
             transaction_type=transaction_type,
             amount=amount,
             currency=currency,
@@ -127,27 +88,59 @@ def create_transaction():
             order_reference=order_reference,
             parent_transaction_id=parent_transaction_id,
             metadata=metadata,
-            status="PENDING",
         )
 
-        logger.info(f"Transaction created: {transaction_id}")
+        # format response based on whether it's duplicate or new
+        if result["is_duplicate"]:
+            return (
+                jsonify(
+                    {
+                        "message": "Transaction already exists",
+                        "transaction_id": result["transaction_id"],
+                        "status": result["status"],
+                    }
+                ),
+                200,
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "message": "Transaction created successfully",
+                        "transaction_id": result["transaction_id"],
+                        "status": result["status"],
+                    }
+                ),
+                201,
+            )
 
-        return (
-            jsonify(
-                {
-                    "message": "Transaction created successfully",
-                    "transaction_id": transaction_id,
-                    "status": "PENDING",
-                }
-            ),
-            201,
-        )
-
-    except ValueError as e:
+    except ValidationError as e:
+        # business validation error
         logger.warning(f"Validation error: {e}")
         return jsonify({"error": str(e)}), 400
     except Exception as e:
+        # unexpected error
         logger.error(f"Unexpected error: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# transaction by id
+@app.route("/transactions/<transaction_id>", methods=["GET"])
+def get_transaction_endpoint(transaction_id):
+    """
+    endpoint to get a single transaction by ID
+    example: GET /transactions/TXN_20250110_143052_AUTH_a3f9k2p8
+    """
+    try:
+        transaction = get_transaction(transaction_id)
+
+        if not transaction:
+            return jsonify({"error": "Transaction not found"}), 404
+
+        return jsonify(transaction), 200
+
+    except Exception as e:
+        logger.error(f"Error retrieving transaction: {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
 

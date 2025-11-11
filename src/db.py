@@ -75,7 +75,7 @@ def get_transaction_by_order(merchant_id, order_reference):
 
 
 def get_transaction_by_id(transaction_id):
-    """Get transaction by transaction_id"""
+    """get transaction by transaction id"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -102,6 +102,35 @@ def get_transaction_by_id(transaction_id):
         conn.close()
 
 
+def get_all_transactions():
+    """get all transactions from database"""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT transaction_id, type, amount, currency, merchant_id,
+                   order_reference, parent_transaction_id, metadata, status,
+                   created_at, updated_at
+            FROM transactions
+            ORDER BY created_at DESC
+        """
+        )
+
+        results = cursor.fetchall()
+
+        # parse JSON metadata for each transaction
+        for result in results:
+            if result.get("metadata"):
+                result["metadata"] = json.loads(result["metadata"])
+
+        return results
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def insert_transaction(
     transaction_id,
     transaction_type,
@@ -113,7 +142,7 @@ def insert_transaction(
     metadata=None,
     status="PENDING",
 ):
-    """Insert new transaction into database"""
+    """insert new transaction into database"""
     conn = get_connection()
     cursor = conn.cursor()
 
