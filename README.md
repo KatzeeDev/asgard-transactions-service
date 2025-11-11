@@ -205,7 +205,7 @@ graph LR
 ## Estado Actual
 
 **Fase:** 1 - Flask MVP
-**Progreso:** ![](https://img.shields.io/badge/Completado-45%25-yellow?style=flat)
+**Progreso:** ![](https://img.shields.io/badge/Completado-60%25-yellow?style=flat)
 
 ### Implementado
 
@@ -216,10 +216,13 @@ graph LR
 - [x] Validación de reglas de negocio
 - [x] Idempotencia (`merchant_id` + `order_reference`)
 - [x] Connection pooling MySQL
+- [x] Endpoints GET (consulta de transacciones)
+  - `GET /transactions` - Listar todas las transacciones
+  - `GET /transactions/:id` - Obtener transacción por ID
+- [x] Refactorización a arquitectura en capas (services + errors)
 
 ### Pendiente
 
-- [ ] Endpoints GET (consulta de transacciones)
 - [ ] Endpoints PATCH (actualización de estado)
 - [ ] Tests unitarios y de integración
 - [ ] Documentación OpenAPI
@@ -260,8 +263,10 @@ docker-compose ps
 asgard-transactions-api-rest/
 │
 ├── src/                    # Código fuente
-│   ├── app.py             # Aplicación Flask y rutas
+│   ├── app.py             # Aplicación Flask y rutas (routing)
+│   ├── services.py        # Lógica de negocio
 │   ├── db.py              # Capa de acceso a datos
+│   ├── errors.py          # Excepciones personalizadas
 │   └── utils.py           # Utilidades
 │
 ├── db/                     # Scripts de base de datos
