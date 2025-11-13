@@ -1,303 +1,316 @@
-<div align="center">
-
 # Asgard Transactions API
 
-### MVP Experimental · Laboratorio de Aprendizaje
+![Python](https://img.shields.io/badge/python-3.11+-blue?style=flat-square)
+![Flask](https://img.shields.io/badge/flask-3.1-black?style=flat-square)
+![MySQL](https://img.shields.io/badge/mysql-8.0-blue?style=flat-square)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/Status-MVP_Experimental-orange?style=for-the-badge)](https://github.com)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.1.2-000000.svg?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
+> **v1 Flask MVP** — Primera iteración del servicio de transacciones usando Flask + MySQL
 
-**Microservicio experimental para aprender arquitecturas REST antes de construir el proyecto definitivo**
+API REST para gestión de transacciones de pago que implementa el flujo AUTH → CAPTURE → REFUND con idempotencia y validación de reglas de negocio.
 
-[El Plan](#-el-plan) · [Roadmap](#-roadmap) · [Stack](#-stack-tecnológico) · [Inicio Rápido](#-inicio-rápido)
+**Parte de un experimento** donde construyo el mismo servicio con diferentes tecnologías (Flask, FastAPI, Go) para comparar enfoques arquitectónicos.
 
 ---
 
-</div>
+## Tabla de Contenidos
 
-## El Plan
-
-Este proyecto es un **MVP experimental** diseñado para aprender construyendo el mismo servicio múltiples veces con diferentes tecnologías.
-
-### ¿Por qué hacer esto?
-
-**Objetivo principal:** Entender a fondo sistemas de transacciones y APIs REST experimentando con diferentes stacks tecnológicos antes de tomar decisiones para el proyecto definitivo.
-
-**Estrategia:**
-1. Construir el mismo servicio de transacciones 3-4 veces
-2. Cada iteración usa una tecnología diferente (Flask → FastAPI → Go/Java/Rust)
-3. Documentar aprendizajes, comparar rendimiento y complejidad
-4. Identificar trade-offs de cada approach
-
-**¿Qué pasa después?**
-Una vez completadas las iteraciones y con el conocimiento adquirido, este componente se integrará como parte de un **ecosistema de microservicios mayor en AWS** (proyecto Asgard), aplicando las mejores prácticas aprendidas.
-
-> **Nota importante:** Este NO es el proyecto final. Es un laboratorio de experimentación. El código aquí sirve para aprender, no para producción.
+- [Características](#características)
+- [Inicio Rápido](#inicio-rápido)
+- [Uso de la API](#uso-de-la-api)
+- [Reglas de Negocio](#reglas-de-negocio)
+- [Arquitectura](#arquitectura)
+- [Estado del Proyecto](#estado-del-proyecto)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Comandos Útiles](#comandos-útiles)
+- [Aprendizajes](#aprendizajes)
 
 ---
 
-## ¿Qué es este servicio?
+## Características
 
-API REST para gestión de transacciones de pago que maneja operaciones básicas:
+**Operaciones soportadas:**
+- **AUTH** — Autorización de pago (reserva fondos)
+- **CAPTURE** — Captura de fondos autorizados
+- **REFUND** — Devolución de transacciones
 
-- **AUTH**: Autorización de pago
-- **CAPTURE**: Captura de fondos autorizados
-- **REFUND**: Devolución de transacciones
-
-Incluye validación de reglas de negocio, idempotencia, y manejo de estados.
-
-## Roadmap
-
-El plan es iterar sobre el mismo servicio con diferentes tecnologías. **Este roadmap puede cambiar** según lo aprendido en cada fase.
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px'}}}%%
-graph LR
-    A[📦 Fase 1<br/>Flask + MySQL] --> B[⚡ Fase 2<br/>FastAPI + Async]
-    B --> C[🔧 Fase 3<br/>Go/Java/Rust]
-    C --> D[☁️ Fase 4<br/>Integración AWS]
-
-    style A fill:#48bb78,stroke:#2f855a,stroke-width:3px,color:#000
-    style B fill:#4299e1,stroke:#2b6cb0,stroke-width:2px,color:#000
-    style C fill:#ed8936,stroke:#c05621,stroke-width:2px,color:#000
-    style D fill:#9f7aea,stroke:#6b46c1,stroke-width:2px,color:#000
-```
-
-### Fase 1: Flask + MySQL (En Progreso)
-
-**Stack:** ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white)
-
-**Objetivo:** Establecer la base funcional del servicio y comprender fundamentos de APIs REST de transacciones.
-
-**Alcance:**
-- Operaciones CRUD para transacciones
-- Validación de reglas de negocio
-- Idempotencia y manejo de estados
-- Containerización básica
-
-**Aprendizajes esperados:**
-- Diseño de APIs REST
-- Flujos de transacciones
-- Patrones de validación
-- Arquitectura de capas
-
----
-
-### Fase 2: FastAPI + Async
-
-**Stack:** ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-
-**Objetivo:** Reescribir completamente el servicio para explorar programación asíncrona y comparar con el approach síncrono.
-
-**Alcance:**
-- Migración completa a FastAPI
-- Operaciones async/await
-- Validación con Pydantic
-- Documentación OpenAPI automática
-- Migración de MySQL a PostgreSQL
-
-**Aprendizajes esperados:**
-- Programación asíncrona en Python
-- Diferencias de rendimiento sync vs async
-- Trade-offs de validación con tipado fuerte
-- Generación automática de docs
-
-**Métricas a comparar:** Latencia, throughput, uso de recursos, complejidad del código
-
----
-
-### Fase 3: Lenguaje Compilado
-
-**Stack:** ![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white) o ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white) o ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-
-**Objetivo:** Salir del ecosistema Python para entender trade-offs de lenguajes compilados.
-
-**Alcance:**
-- Reescritura completa en Go (o Java Spring Boot, o Rust)
-- Explorar patrones de concurrencia nativos
-- Optimización de recursos y latencia
-- Comparativa con implementaciones Python
-
-**Aprendizajes esperados:**
-- Concurrencia nativa (goroutines, threads, async runtime)
-- Gestión de memoria manual vs GC
-- Ecosistema de herramientas
-- Trade-offs de productividad vs performance
-
-**Métricas a comparar:** Tiempo de desarrollo, curva de aprendizaje, rendimiento, tamaño de binarios
-
----
-
-### Fase 4: Integración en Ecosistema AWS
-
-**Stack:** ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white) ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)
-
-**Objetivo:** Integrar el servicio (en la tecnología elegida) como componente del proyecto mayor Asgard con arquitectura de dominios.
-
-**Alcance:**
-- Arquitectura de microservicios en AWS
-- Implementación de bounded contexts (DDD)
-- Despliegue en ECS/EKS/Lambda
-- API Gateway + Event-driven architecture
-- Infraestructura como código (Terraform)
-- CI/CD completo
-- Observabilidad (CloudWatch, X-Ray, métricas)
-
-**Aprendizajes esperados:**
-- Domain-Driven Design en práctica
-- Arquitectura distribuida
-- Infraestructura cloud
-- DevOps y automatización
-
-**Resultado final:** Servicio de transacciones como componente productivo dentro del ecosistema Asgard
-
----
-
-## Stack Tecnológico
-
-### Actual (Fase 1)
-
-<div align="center">
-
-| Componente | Tecnología |
-|:-----------|:----------:|
-| **Lenguaje** | ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat&logo=python&logoColor=white) |
-| **Framework Web** | ![Flask](https://img.shields.io/badge/Flask_3.1.2-000000?style=flat&logo=flask&logoColor=white) |
-| **Base de Datos** | ![MySQL](https://img.shields.io/badge/MySQL_8.0-4479A1?style=flat&logo=mysql&logoColor=white) |
-| **Containerización** | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) ![Compose](https://img.shields.io/badge/Compose-2496ED?style=flat&logo=docker&logoColor=white) |
-| **Workflow** | ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white) ![GitFlow](https://img.shields.io/badge/GitFlow-F05032?style=flat&logo=git&logoColor=white) |
-
-</div>
-
-### Tecnologías Futuras Contempladas
-
-<details>
-<summary><b>Ver roadmap de tecnologías</b></summary>
-
-<br>
-
-**Fase 2 - FastAPI:**
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat)
-![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat)
-
-**Fase 3 - Lenguaje Compilado:**
-![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white)
-![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat&logo=spring-boot&logoColor=white)
-![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-
-**Fase 4 - Cloud & DevOps:**
-![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=github-actions&logoColor=white)
-
-</details>
-
----
-
-## Estado Actual
-
-**Fase:** 1 - Flask MVP
-**Progreso:** ![](https://img.shields.io/badge/Completado-60%25-yellow?style=flat)
-
-### Implementado
-
-- [x] Estructura base del proyecto
-- [x] Configuración Docker Compose
-- [x] Schema de base de datos
-- [x] Endpoint POST `/transactions` (AUTH, CAPTURE, REFUND)
-- [x] Validación de reglas de negocio
-- [x] Idempotencia (`merchant_id` + `order_reference`)
-- [x] Connection pooling MySQL
-- [x] Endpoints GET (consulta de transacciones)
-  - `GET /transactions` - Listar todas las transacciones
-  - `GET /transactions/:id` - Obtener transacción por ID
-- [x] Refactorización a arquitectura en capas (services + errors)
-
-### Pendiente
-
-- [ ] Endpoints PATCH (actualización de estado)
-- [ ] Tests unitarios y de integración
-- [ ] Documentación OpenAPI
-- [ ] Logging estructurado
-- [ ] Manejo avanzado de errores
+**Features implementados:**
+- Validación de flujo de transacciones
+- Idempotencia basada en `merchant_id + order_reference`
+- Connection pooling con singleton pattern
+- Arquitectura en 3 capas (routes → services → db)
+- Manejo de errores con excepciones personalizadas
+- Docker ready
 
 ---
 
 ## Inicio Rápido
 
-### Prerequisitos
+**Prerequisitos:**
+- Docker 20.10+
+- Docker Compose 1.29+
 
-![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?style=flat&logo=docker&logoColor=white)
-![Docker Compose](https://img.shields.io/badge/Docker_Compose-1.29+-2496ED?style=flat&logo=docker&logoColor=white)
+**Instalación con Docker (recomendado):**
+```bash
+git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
+cd asgard-transactions-api-rest
+git checkout v1-flask-mvp
 
-### Instalación
+docker-compose up -d
+```
+
+La API estará disponible en `http://localhost:5001`
+
+**Verificar:**
+```bash
+curl http://localhost:5001/transactions
+```
+
+**Instalación local (sin Docker):**
+
+Si prefieres correr la aplicación sin Docker:
 
 ```bash
 # Clonar repositorio
 git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
 cd asgard-transactions-api-rest
+git checkout v1-flask-mvp
 
-# Levantar servicios
-docker-compose up -d
+# Crear entorno virtual
+python3 -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 
-# Ver logs
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales de MySQL
+
+# Ejecutar la aplicación
+cd src
+python app.py
+```
+
+> **Nota:** Necesitarás una instancia de MySQL corriendo localmente. Configurar host, usuario, contraseña y base de datos en `.env`
+
+---
+
+## Uso de la API
+
+**Endpoints disponibles:**
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/transactions` | Crear nueva transacción |
+| `GET` | `/transactions` | Listar todas las transacciones |
+| `GET` | `/transactions/:id` | Obtener transacción por ID |
+| `PATCH` | `/transactions/:id` | Actualizar estado de transacción |
+| `DELETE` | `/transactions/:id` | Eliminar transacción |
+
+**Ejemplo 1: Crear AUTH**
+```json
+POST http://localhost:5001/transactions
+
+{
+  "type": "AUTH",
+  "amount": 15000.50,
+  "currency": "CLP",
+  "merchant_id": "MCH_001",
+  "order_reference": "ORDER_2025_001",
+  "metadata": {
+    "product": "Laptop Dell XPS 15"
+  }
+}
+```
+
+**Ejemplo 2: Crear CAPTURE**
+```json
+POST http://localhost:5001/transactions
+
+{
+  "type": "CAPTURE",
+  "amount": 15000.50,
+  "currency": "CLP",
+  "merchant_id": "MCH_001",
+  "order_reference": "CAPTURE_001",
+  "parent_transaction_id": "TXN_20251110_220654_AUTH_a1b341c7"
+}
+```
+
+**Ejemplo 3: Actualizar estado**
+```json
+PATCH http://localhost:5001/transactions/TXN_20251110_220654_AUTH_a1b341c7
+
+{
+  "status": "APPROVED"
+}
+```
+
+**Estados válidos:** `PENDING`, `APPROVED`, `DECLINED`
+**Monedas soportadas:** `CLP`, `USD`, `EUR`
+
+---
+
+## Reglas de Negocio
+
+**Flujo de transacciones:**
+```
+AUTH (inicio) → CAPTURE (captura fondos) → REFUND (devuelve fondos)
+```
+
+**Tipos de transacción:**
+
+- **AUTH** — Primera transacción en el flujo. No requiere transacción padre.
+- **CAPTURE** — Requiere transacción AUTH como padre. Captura fondos previamente autorizados.
+- **REFUND** — Requiere transacción AUTH o CAPTURE como padre. Devuelve fondos al cliente.
+
+**Idempotencia:**
+
+Las transacciones son idempotentes basadas en `merchant_id + order_reference`. Si se intenta crear una transacción con la misma combinación, se retorna la existente en lugar de crear un duplicado.
+
+> **Nota:** Actualmente implementado a nivel de aplicación. Falta agregar índice único en la base de datos para garantizarlo a nivel de DB.
+
+---
+
+## Arquitectura
+
+**Estructura del proyecto:**
+```
+src/
+├── app.py                      # Punto de entrada Flask
+├── exceptions.py               # Excepciones personalizadas
+├── routes/
+│   └── transactions.py         # Endpoints HTTP
+├── services/
+│   └── transaction_service.py  # Lógica de negocio y validaciones
+├── db/
+│   ├── connection.py           # Connection pool (singleton)
+│   └── queries.py              # Queries SQL
+└── utils/
+    └── helpers.py              # Funciones auxiliares
+```
+
+**Capas de la aplicación:**
+```
+┌─────────────────────────────────────┐
+│         HTTP Layer (Flask)          │  ← routes/
+├─────────────────────────────────────┤
+│    Business Logic & Validation      │  ← services/
+├─────────────────────────────────────┤
+│       Data Access Layer (SQL)       │  ← db/
+├─────────────────────────────────────┤
+│           MySQL Database            │
+└─────────────────────────────────────┘
+```
+
+**Patrones implementados:**
+- **Separation of Concerns** — Cada capa tiene una responsabilidad única
+- **Singleton Pattern** — Connection pool reutilizable
+- **Dependency Flow** — Unidireccional (routes → services → db)
+
+---
+
+## Estado del Proyecto
+
+**Completado:**
+- [x] Estructura base con arquitectura en capas
+- [x] Configuración Docker Compose
+- [x] Schema de base de datos MySQL
+- [x] CRUD completo de transacciones
+- [x] Validación de reglas de negocio
+- [x] Idempotencia (a nivel de aplicación)
+- [x] Connection pooling con singleton pattern
+- [x] Manejo de errores estructurado
+- [x] Logging
+
+**Pendiente:**
+- [ ] Tests unitarios con pytest
+- [ ] Índice único compuesto en BD para idempotencia
+- [ ] Métricas básicas (contadores por tipo/estado)
+- [ ] Dashboard web para visualización
+- [ ] Optimización de queries
+
+**Deliberadamente no implementado:**
+
+Estas features se implementarán en la **Fase 2 (FastAPI)** donde son nativas:
+- OpenAPI/Swagger automático
+- Pydantic schemas para validación
+- Validación declarativa de requests
+- Type hints avanzados
+
+---
+
+## Stack Tecnológico
+
+| Componente | Tecnología | Versión |
+|------------|------------|---------|
+| Lenguaje | Python | 3.11+ |
+| Framework Web | Flask | 3.1.2 |
+| Base de Datos | MySQL | 8.0 |
+| Containerización | Docker | 20.10+ |
+| Orquestación | Docker Compose | 1.29+ |
+
+---
+
+## Comandos Útiles
+
+```bash
+# Ver logs en tiempo real
 docker-compose logs -f app
 
-# Verificar estado
-docker-compose ps
+# Detener servicios
+docker-compose down
+
+# Reconstruir contenedores
+docker-compose up -d --build
+
+# Limpiar volúmenes (borra datos)
+docker-compose down -v
+
+# Acceder al contenedor
+docker exec -it asgard_api bash
+
+# Conectar a MySQL
+docker exec -it asgard_db mysql -u root -p
 ```
 
 ---
 
-## Estructura del Proyecto
+## Aprendizajes
 
-```
-asgard-transactions-api-rest/
-│
-├── src/                    # Código fuente
-│   ├── app.py             # Aplicación Flask y rutas (routing)
-│   ├── services.py        # Lógica de negocio
-│   ├── db.py              # Capa de acceso a datos
-│   ├── errors.py          # Excepciones personalizadas
-│   └── utils.py           # Utilidades
-│
-├── db/                     # Scripts de base de datos
-│   └── init.sql           # Schema DDL
-│
-├── docker-compose.yml      # Orquestación de servicios
-├── Dockerfile             # Imagen Docker
-└── requirements.txt       # Dependencias Python
-```
+**Arquitectura en capas**
 
----
+Separar en routes/services/db simplificó el debugging y mantenimiento. Al principio tenía todo en un solo archivo y cada cambio afectaba múltiples responsabilidades. Con la separación, cada capa tiene un propósito claro.
 
-## Workflow de Desarrollo
+**Connection pooling**
 
-**Estrategia:** GitFlow
+Implementé un pool de 5 conexiones MySQL reutilizables usando singleton pattern. La diferencia de latencia vs crear conexiones nuevas en cada request fue notable, especialmente en operaciones repetitivas.
 
-| Branch | Propósito |
-|:-------|:----------|
-| `main` | Releases estables |
-| `develop` | Desarrollo activo |
-| `feature/*` | Nuevas funcionalidades |
-| `hotfix/*` | Correcciones urgentes |
+**Validación centralizada**
+
+Toda la lógica de negocio (AUTH → CAPTURE → REFUND) vive en la capa de services. Los routes solo manejan HTTP. Esto garantiza que las validaciones sean consistentes sin importar desde dónde se invoquen.
+
+**Idempotencia a nivel de aplicación**
+
+Valido `merchant_id + order_reference` antes de insertar. Funcional pero no ideal. Falta agregar un índice único en la BD para garantizarlo a nivel de base de datos y prevenir race conditions.
+
+**Flask para MVPs**
+
+Setup directo, documentación clara, y con Docker el deployment es simple. Perfecto para entender fundamentos antes de saltar a frameworks más complejos.
+
+**Próximo experimento:**
+
+Reimplementar este mismo servicio con FastAPI para comparar:
+- Performance async vs sync
+- Developer experience con features automáticas (OpenAPI, Pydantic)
+- Tiempo de desarrollo
 
 ---
 
 <div align="center">
 
-**Proyecto experimental de aprendizaje**
+**v1 Flask MVP** · Fase 1 de 4
 
-![Made with](https://img.shields.io/badge/Made_with-Python-3776AB?style=flat&logo=python&logoColor=white)
-![Built with](https://img.shields.io/badge/Built_with-Flask-000000?style=flat&logo=flask&logoColor=white)
-![Powered by](https://img.shields.io/badge/Powered_by-Docker-2496ED?style=flat&logo=docker&logoColor=white)
+[Ver proyecto completo](../../tree/main) · [Issues](../../issues)
 
 </div>

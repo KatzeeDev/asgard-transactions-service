@@ -1,51 +1,18 @@
 """
-Database module with connection pooling and basic queries
+database queries for transactions
 """
 
-import mysql.connector
-from mysql.connector import pooling
-import os
 import json
 import logging
+import mysql.connector
+from db.connection import get_connection
 
 logger = logging.getLogger(__name__)
-
-_connection_pool = None
-
-
-def get_connection_pool():
-    """
-    get or create MySQL connection pool (singleton pattern) Reuses connections for better performance
-    """
-    global _connection_pool
-
-    if _connection_pool is not None:
-        return _connection_pool
-
-    logger.info("Initializing database connection pool")
-
-    _connection_pool = pooling.MySQLConnectionPool(
-        pool_name="asgard_pool",
-        pool_size=5,
-        host=os.getenv("DB_HOST", "localhost"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-    )
-
-    logger.info("Connection pool created successfully")
-    return _connection_pool
-
-
-def get_connection():
-    # Get a connection from the pool
-    pool = get_connection_pool()
-    return pool.get_connection()
 
 
 def get_transaction_by_order(merchant_id, order_reference):
     """
-    idempotency check: transaction by merchant_id + order_reference
+    check if transaction exists by merchant and order -> used for idempotency
     """
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -64,7 +31,7 @@ def get_transaction_by_order(merchant_id, order_reference):
 
         result = cursor.fetchone()
 
-        # parse JSON metadata if exists
+        # parse json metadata
         if result and result.get("metadata"):
             result["metadata"] = json.loads(result["metadata"])
 
@@ -75,7 +42,7 @@ def get_transaction_by_order(merchant_id, order_reference):
 
 
 def get_transaction_by_id(transaction_id):
-    """get transaction by transaction id"""
+    """find transaction by id"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -103,7 +70,7 @@ def get_transaction_by_id(transaction_id):
 
 
 def get_all_transactions():
-    """get all transactions from database"""
+    """fetch all transactions ordered by newest"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -120,7 +87,6 @@ def get_all_transactions():
 
         results = cursor.fetchall()
 
-        # parse JSON metadata for each transaction
         for result in results:
             if result.get("metadata"):
                 result["metadata"] = json.loads(result["metadata"])
@@ -142,12 +108,12 @@ def insert_transaction(
     metadata=None,
     status="PENDING",
 ):
-    """insert new transaction into database"""
+    """create new transaction in database"""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-        # metadata dict to JSON string
+        # convert metadata dict to json string
         metadata_json = json.dumps(metadata) if metadata else None
 
         cursor.execute(
@@ -171,21 +137,74 @@ def insert_transaction(
         )
 
         conn.commit()
-        logger.info(f"Transaction inserted: {transaction_id}")
+        logger.info(f"transaction inserted: {transaction_id}")
         return transaction_id
 
     except mysql.connector.IntegrityError as e:
         conn.rollback()
         if "Duplicate entry" in str(e):
-            raise ValueError(f"Transaction {transaction_id} already exists")
+            raise ValueError(f"transaction {transaction_id} already exists")
         elif "foreign key constraint" in str(e).lower():
             raise ValueError(
-                f"Parent transaction {parent_transaction_id} does not exist"
+                f"parent transaction {parent_transaction_id} does not exist"
             )
         raise
     except Exception as e:
         conn.rollback()
-        logger.error(f"Error inserting transaction: {e}")
+        logger.error(f"error inserting transaction: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_transaction_status(transaction_id, new_status):
+    """change transaction status"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE transactions SET status = %s WHERE transaction_id = %s",
+            (new_status, transaction_id),
+        )
+        conn.commit()
+        rows_affected = cursor.rowcount
+        if rows_affected == 0:
+            return False
+        logger.info(f"transaction status updated: {transaction_id} -> {new_status}")
+        return True
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"error updating transaction: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def delete_transaction(transaction_id):
+    """remove transaction from database"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM transactions WHERE transaction_id = %s",
+            (transaction_id,),
+        )
+        conn.commit()
+        rows_affected = cursor.rowcount
+        if rows_affected == 0:
+            return False
+        logger.info(f"transaction deleted: {transaction_id}")
+        return True
+    except mysql.connector.IntegrityError as e:
+        conn.rollback()
+        if "foreign key constraint" in str(e).lower():
+            raise ValueError("cannot delete transaction: it has child transactions")
+        raise
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"error deleting transaction: {e}")
         raise
     finally:
         cursor.close()
