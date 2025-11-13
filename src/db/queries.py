@@ -22,6 +22,7 @@ def get_transaction_by_order(merchant_id, order_reference):
             """
             SELECT transaction_id, type, amount, currency, merchant_id,
                    order_reference, parent_transaction_id, metadata, status,
+                   error_code, error_message, location,
                    created_at, updated_at
             FROM transactions
             WHERE merchant_id = %s AND order_reference = %s
@@ -51,6 +52,7 @@ def get_transaction_by_id(transaction_id):
             """
             SELECT transaction_id, type, amount, currency, merchant_id,
                    order_reference, parent_transaction_id, metadata, status,
+                   error_code, error_message, location,
                    created_at, updated_at
             FROM transactions
             WHERE transaction_id = %s
@@ -79,6 +81,7 @@ def get_all_transactions():
             """
             SELECT transaction_id, type, amount, currency, merchant_id,
                    order_reference, parent_transaction_id, metadata, status,
+                   error_code, location,
                    created_at, updated_at
             FROM transactions
             ORDER BY created_at DESC
@@ -107,6 +110,9 @@ def insert_transaction(
     parent_transaction_id=None,
     metadata=None,
     status="PENDING",
+    error_code=None,
+    error_message=None,
+    location=None,
 ):
     """create new transaction in database"""
     conn = get_connection()
@@ -120,8 +126,9 @@ def insert_transaction(
             """
             INSERT INTO transactions (
                 transaction_id, type, amount, currency, merchant_id,
-                order_reference, parent_transaction_id, metadata, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                order_reference, parent_transaction_id, metadata, status,
+                error_code, error_message, location
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
             (
                 transaction_id,
@@ -133,6 +140,9 @@ def insert_transaction(
                 parent_transaction_id,
                 metadata_json,
                 status,
+                error_code,
+                error_message,
+                location,
             ),
         )
 

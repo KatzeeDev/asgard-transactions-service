@@ -43,7 +43,10 @@ def create_transaction_endpoint():
         "merchant_id": str,
         "order_reference": str,
         "parent_transaction_id": str (optional, required for capture/refund),
-        "metadata": {} (optional)
+        "metadata": {} (optional),
+        "error_code": str (optional),
+        "error_message": str (optional),
+        "location": str (optional)
     }
     """
     # validate json body exists
@@ -65,6 +68,9 @@ def create_transaction_endpoint():
     order_reference = data["order_reference"]
     parent_transaction_id = data.get("parent_transaction_id")
     metadata = data.get("metadata")
+    error_code = data.get("error_code")
+    error_message = data.get("error_message")
+    location = data.get("location")
 
     try:
         # delegate to service layer
@@ -76,6 +82,9 @@ def create_transaction_endpoint():
             order_reference=order_reference,
             parent_transaction_id=parent_transaction_id,
             metadata=metadata,
+            error_code=error_code,
+            error_message=error_message,
+            location=location,
         )
 
         # format response based on duplicate or new

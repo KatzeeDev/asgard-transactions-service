@@ -32,6 +32,9 @@ def create_transaction(
     order_reference: str,
     parent_transaction_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    error_code: Optional[str] = None,
+    error_message: Optional[str] = None,
+    location: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     create a new transaction with full business validation
@@ -105,6 +108,9 @@ def create_transaction(
         parent_transaction_id=parent_transaction_id,
         metadata=metadata,
         status="PENDING",
+        error_code=error_code,
+        error_message=error_message,
+        location=location,
     )
 
     logger.info(f"transaction created successfully: {transaction_id}")

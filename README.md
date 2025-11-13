@@ -35,10 +35,12 @@ API REST para gestión de transacciones de pago que implementa el flujo AUTH →
 
 **Features implementados:**
 - Validación de flujo de transacciones
-- Idempotencia basada en `merchant_id + order_reference`
+- Idempotencia garantizada con constraint único en BD (`merchant_id + order_reference`)
+- Tracking de errores y ubicación para analytics
 - Connection pooling con singleton pattern
 - Arquitectura en 3 capas (routes → services → db)
 - Manejo de errores con excepciones personalizadas
+- Protección de datos sensibles en respuestas
 - Docker ready
 
 ---
@@ -117,11 +119,17 @@ POST http://localhost:5001/transactions
   "currency": "CLP",
   "merchant_id": "MCH_001",
   "order_reference": "ORDER_2025_001",
+  "location": "Santiago, Chile",
   "metadata": {
     "product": "Laptop Dell XPS 15"
   }
 }
 ```
+
+**Campos opcionales adicionales:**
+- `location` — Ubicación de la compra para analytics y detección de fraude
+- `error_code` — Código de error estandarizado (ej: "INSUFFICIENT_FUNDS")
+- `error_message` — Descripción detallada del error (solo visible en GET individual)
 
 **Ejemplo 2: Crear CAPTURE**
 ```json
@@ -168,7 +176,16 @@ AUTH (inicio) → CAPTURE (captura fondos) → REFUND (devuelve fondos)
 
 Las transacciones son idempotentes basadas en `merchant_id + order_reference`. Si se intenta crear una transacción con la misma combinación, se retorna la existente en lugar de crear un duplicado.
 
-> **Nota:** Actualmente implementado a nivel de aplicación. Falta agregar índice único en la base de datos para garantizarlo a nivel de DB.
+La idempotencia está garantizada a **dos niveles**:
+1. **Aplicación** — Verifica duplicados antes de insertar
+2. **Base de Datos** — Constraint único `UNIQUE(merchant_id, order_reference)` previene race conditions
+
+**Tracking de errores y ubicación:**
+
+Nuevos campos opcionales para analytics y debugging:
+- `error_code` — Código estandarizado para clasificar errores
+- `error_message` — Detalle técnico del error (solo visible en GET individual por seguridad)
+- `location` — Ubicación de la compra para analytics y detección de fraude
 
 ---
 
@@ -218,14 +235,16 @@ src/
 - [x] Schema de base de datos MySQL
 - [x] CRUD completo de transacciones
 - [x] Validación de reglas de negocio
-- [x] Idempotencia (a nivel de aplicación)
+- [x] Idempotencia garantizada (aplicación + BD)
+- [x] Constraint único en BD (`merchant_id + order_reference`)
+- [x] Campos de tracking (error_code, error_message, location)
+- [x] Protección de datos sensibles (error_message no expuesto en listas)
 - [x] Connection pooling con singleton pattern
 - [x] Manejo de errores estructurado
 - [x] Logging
 
 **Pendiente:**
 - [ ] Tests unitarios con pytest
-- [ ] Índice único compuesto en BD para idempotencia
 - [ ] Métricas básicas (contadores por tipo/estado)
 - [ ] Dashboard web para visualización
 - [ ] Optimización de queries
@@ -290,9 +309,13 @@ Implementé un pool de 5 conexiones MySQL reutilizables usando singleton pattern
 
 Toda la lógica de negocio (AUTH → CAPTURE → REFUND) vive en la capa de services. Los routes solo manejan HTTP. Esto garantiza que las validaciones sean consistentes sin importar desde dónde se invoquen.
 
-**Idempotencia a nivel de aplicación**
+**Idempotencia multinivel**
 
-Valido `merchant_id + order_reference` antes de insertar. Funcional pero no ideal. Falta agregar un índice único en la BD para garantizarlo a nivel de base de datos y prevenir race conditions.
+Implementé validación en la aplicación + constraint único en la BD. La combinación de ambos niveles garantiza que no se creen duplicados incluso bajo race conditions. El constraint `UNIQUE(merchant_id, order_reference)` actúa como última línea de defensa.
+
+**Protección de datos sensibles**
+
+Los campos de error (`error_code`, `error_message`, `location`) son útiles para debugging pero `error_message` puede contener información sensible. En el endpoint GET list solo exponemos `error_code` y `location`, mientras que `error_message` solo está disponible en GET individual. Esto balancea necesidades de debugging con seguridad.
 
 **Flask para MVPs**
 

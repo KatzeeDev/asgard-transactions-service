@@ -47,6 +47,16 @@ CREATE TABLE IF NOT EXISTS transactions (
     -- NULL if no additional metadata is needed
     metadata JSON NULL,
 
+    -- Error information for failed transactions
+    -- error_code: standardized error identifier (e.g., "INSUFFICIENT_FUNDS")
+    -- error_message: detailed error description for debugging
+    error_code VARCHAR(64) NULL,
+    error_message TEXT NULL,
+
+    -- Purchase location for analytics and fraud detection
+    -- Example: "Santiago, Chile" or "New York, USA"
+    location VARCHAR(128) NULL,
+
     -- Audit: creation timestamp (automatically set by MySQL)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -58,7 +68,14 @@ CREATE TABLE IF NOT EXISTS transactions (
     INDEX idx_order (order_reference),
     INDEX idx_parent (parent_transaction_id),
     INDEX idx_status (status),
+    INDEX idx_type (type),
     INDEX idx_created_at (created_at),
+    INDEX idx_merchant_status (merchant_id, status),
+
+    -- Unique constraint for idempotency
+    -- Guarantees merchant_id + order_reference is unique
+    -- Prevents duplicate transactions at database level (race condition safe)
+    CONSTRAINT uk_merchant_order UNIQUE (merchant_id, order_reference),
 
     -- Foreign key constraint ensures referential integrity
     -- Prevents CAPTURE/REFUND from referencing non-existent parents

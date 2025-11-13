@@ -13,10 +13,13 @@ class AppError(Exception):
     """base exception for application errors"""
 
     def __init__(self, message, status_code=400, payload=None):
-        super().__init__()
+        super().__init__(message)
         self.message = message
         self.status_code = status_code
         self.payload = payload
+
+    def __str__(self):
+        return self.message
 
     def to_dict(self):
         rv = {"error": self.message}
