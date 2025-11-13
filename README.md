@@ -1,65 +1,53 @@
-<div align="center">
-
 # Asgard Transactions API
 
-### MVP Experimental · Laboratorio de Aprendizaje
+![Python](https://img.shields.io/badge/python-3776AB?style=flat-square&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/flask-000000?style=flat-square&logo=flask&logoColor=white)
+![FastAPI](https://img.shields.io/badge/fastapi-009688?style=flat-square&logo=fastapi&logoColor=white)
+![Go](https://img.shields.io/badge/go-00ADD8?style=flat-square&logo=go&logoColor=white)
+![MySQL](https://img.shields.io/badge/mysql-4479A1?style=flat-square&logo=mysql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/postgresql-316192?style=flat-square&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/aws-232F3E?style=flat-square&logo=amazon-aws&logoColor=white)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/Status-MVP_Experimental-orange?style=for-the-badge)](https://github.com)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.1.2-000000.svg?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
+> Experimento de aprendizaje: construir el mismo servicio de transacciones con diferentes tecnologías
 
-**Microservicio experimental para aprender arquitecturas REST antes de construir el proyecto definitivo**
+API REST para transacciones de pago (AUTH/CAPTURE/REFUND) implementada múltiples veces con distintos stacks para comparar arquitecturas, performance y trade-offs.
 
-[El Plan](#-el-plan) · [Roadmap](#-roadmap) · [Stack](#-stack-tecnológico) · [Inicio Rápido](#-inicio-rápido)
+**[Ver implementación Flask](../../tree/v1-flask)** · [Roadmap](#roadmap) · [Cómo navegar](#cómo-navegar)
 
 ---
 
-</div>
+## El plan
 
-## El Plan
+Construir el mismo servicio 3-4 veces con tecnologías diferentes para entender qué funciona mejor antes de decidir el stack definitivo.
 
-Este proyecto es un **MVP experimental** diseñado para aprender construyendo el mismo servicio múltiples veces con diferentes tecnologías.
-
-### ¿Por qué hacer esto?
-
-**Objetivo principal:** Entender a fondo sistemas de transacciones y APIs REST experimentando con diferentes stacks tecnológicos antes de tomar decisiones para el proyecto definitivo.
+**Por qué:** Quiero entender a fondo APIs de transacciones y comparar stacks reales en vez de solo leer documentación.
 
 **Estrategia:**
-1. Construir el mismo servicio de transacciones 3-4 veces
-2. Cada iteración usa una tecnología diferente (Flask → FastAPI → Go/Java/Rust)
-3. Documentar aprendizajes, comparar rendimiento y complejidad
-4. Identificar trade-offs de cada approach
+1. Implementar con Flask (base sincrónica)
+2. Reimplementar con FastAPI (async, validación automática)
+3. Reimplementar con Go (lenguaje compilado, concurrencia nativa)
+4. Elegir el mejor stack e integrarlo en un ecosistema de microservicios en AWS
 
-**¿Qué pasa después?**
-Una vez completadas las iteraciones y con el conocimiento adquirido, este componente se integrará como parte de un **ecosistema de microservicios mayor en AWS** (proyecto Asgard), aplicando las mejores prácticas aprendidas.
+**Qué hace el servicio:**
+- **AUTH** - Autoriza y reserva fondos
+- **CAPTURE** - Captura fondos reservados
+- **REFUND** - Devuelve fondos al cliente
 
-> **Nota importante:** Este NO es el proyecto final. Es un laboratorio de experimentación. El código aquí sirve para aprender, no para producción.
+Incluye validación de flujo, idempotencia, manejo de estados.
+
+> Este NO es el proyecto final. Es un laboratorio para aprender experimentando. El objetivo es comparar y documentar aprendizajes.
 
 ---
 
-## ¿Qué es este servicio?
-
-API REST para gestión de transacciones de pago que maneja operaciones básicas:
-
-- **AUTH**: Autorización de pago
-- **CAPTURE**: Captura de fondos autorizados
-- **REFUND**: Devolución de transacciones
-
-Incluye validación de reglas de negocio, idempotencia, y manejo de estados.
-
 ## Roadmap
-
-El plan es iterar sobre el mismo servicio con diferentes tecnologías. **Este roadmap puede cambiar** según lo aprendido en cada fase.
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px'}}}%%
 graph LR
-    A[📦 Fase 1<br/>Flask + MySQL] --> B[⚡ Fase 2<br/>FastAPI + Async]
-    B --> C[🔧 Fase 3<br/>Go/Java/Rust]
-    C --> D[☁️ Fase 4<br/>Integración AWS]
+    A[Fase 1<br/>Flask + MySQL] --> B[Fase 2<br/>FastAPI + Async]
+    B --> C[Fase 3<br/>Go]
+    C --> D[Fase 4<br/>AWS Integration]
 
     style A fill:#48bb78,stroke:#2f855a,stroke-width:3px,color:#000
     style B fill:#4299e1,stroke:#2b6cb0,stroke-width:2px,color:#000
@@ -67,237 +55,114 @@ graph LR
     style D fill:#9f7aea,stroke:#6b46c1,stroke-width:2px,color:#000
 ```
 
-### Fase 1: Flask + MySQL (En Progreso)
+### Fase 1: Flask + MySQL
 
-**Stack:** ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white)
+**Stack:** Python, Flask, MySQL, Docker
 
-**Objetivo:** Establecer la base funcional del servicio y comprender fundamentos de APIs REST de transacciones.
+**Objetivo:** Entender fundamentos de APIs de transacciones con un stack simple y directo.
 
 **Alcance:**
-- Operaciones CRUD para transacciones
+- CRUD completo
 - Validación de reglas de negocio
-- Idempotencia y manejo de estados
-- Containerización básica
+- Idempotencia
+- Arquitectura en 3 capas
 
-**Aprendizajes esperados:**
+**Aprendizajes:**
 - Diseño de APIs REST
 - Flujos de transacciones
-- Patrones de validación
-- Arquitectura de capas
+- Separation of concerns
+- Connection pooling
+
+**Estado:** Completado → **[Ver implementación v1-flask](../../tree/v1-flask)**
 
 ---
 
 ### Fase 2: FastAPI + Async
 
-**Stack:** ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
+**Stack:** Python, FastAPI, PostgreSQL
 
-**Objetivo:** Reescribir completamente el servicio para explorar programación asíncrona y comparar con el approach síncrono.
-
-**Alcance:**
-- Migración completa a FastAPI
-- Operaciones async/await
-- Validación con Pydantic
-- Documentación OpenAPI automática
-- Migración de MySQL a PostgreSQL
-
-**Aprendizajes esperados:**
-- Programación asíncrona en Python
-- Diferencias de rendimiento sync vs async
-- Trade-offs de validación con tipado fuerte
-- Generación automática de docs
-
-**Métricas a comparar:** Latencia, throughput, uso de recursos, complejidad del código
-
----
-
-### Fase 3: Lenguaje Compilado
-
-**Stack:** ![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white) o ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white) o ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-
-**Objetivo:** Salir del ecosistema Python para entender trade-offs de lenguajes compilados.
+**Objetivo:** Comparar approach asíncrono vs síncrono. Ver si OpenAPI automático y Pydantic valen la pena.
 
 **Alcance:**
-- Reescritura completa en Go (o Java Spring Boot, o Rust)
-- Explorar patrones de concurrencia nativos
-- Optimización de recursos y latencia
-- Comparativa con implementaciones Python
+- Reescritura completa con async/await
+- Validación automática con Pydantic
+- OpenAPI docs automáticas
+- Comparativa de performance
 
-**Aprendizajes esperados:**
-- Concurrencia nativa (goroutines, threads, async runtime)
-- Gestión de memoria manual vs GC
-- Ecosistema de herramientas
-- Trade-offs de productividad vs performance
+**Métricas a comparar:** Latencia, throughput, complejidad del código
 
-**Métricas a comparar:** Tiempo de desarrollo, curva de aprendizaje, rendimiento, tamaño de binarios
+**Estado:** Próximamente
 
 ---
 
-### Fase 4: Integración en Ecosistema AWS
+### Fase 3: Go
 
-**Stack:** ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white) ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)
+**Stack:** Go, Gin/Echo, PostgreSQL
 
-**Objetivo:** Integrar el servicio (en la tecnología elegida) como componente del proyecto mayor Asgard con arquitectura de dominios.
+**Objetivo:** Salir del ecosistema Python. Comparar lenguaje compilado vs interpretado.
 
 **Alcance:**
-- Arquitectura de microservicios en AWS
-- Implementación de bounded contexts (DDD)
-- Despliegue en ECS/EKS/Lambda
-- API Gateway + Event-driven architecture
-- Infraestructura como código (Terraform)
-- CI/CD completo
-- Observabilidad (CloudWatch, X-Ray, métricas)
+- Reescritura completa en Go
+- Goroutines y concurrencia nativa
+- Comparativa con versiones Python
 
-**Aprendizajes esperados:**
-- Domain-Driven Design en práctica
-- Arquitectura distribuida
-- Infraestructura cloud
-- DevOps y automatización
+**Métricas a comparar:** Tiempo de desarrollo, performance, uso de memoria
 
-**Resultado final:** Servicio de transacciones como componente productivo dentro del ecosistema Asgard
+**Estado:** Planificado
 
 ---
 
-## Stack Tecnológico
+### Fase 4: AWS Integration
 
-### Actual (Fase 1)
+**Stack:** AWS, Terraform, ECS/EKS
 
-<div align="center">
+**Objetivo:** Integrar el servicio (con el stack elegido) en un ecosistema de microservicios productivo.
 
-| Componente | Tecnología |
-|:-----------|:----------:|
-| **Lenguaje** | ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat&logo=python&logoColor=white) |
-| **Framework Web** | ![Flask](https://img.shields.io/badge/Flask_3.1.2-000000?style=flat&logo=flask&logoColor=white) |
-| **Base de Datos** | ![MySQL](https://img.shields.io/badge/MySQL_8.0-4479A1?style=flat&logo=mysql&logoColor=white) |
-| **Containerización** | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) ![Compose](https://img.shields.io/badge/Compose-2496ED?style=flat&logo=docker&logoColor=white) |
-| **Workflow** | ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white) ![GitFlow](https://img.shields.io/badge/GitFlow-F05032?style=flat&logo=git&logoColor=white) |
+**Alcance:**
+- Arquitectura de microservicios
+- Domain-Driven Design
+- Infraestructura como código
+- CI/CD, observabilidad
 
-</div>
-
-### Tecnologías Futuras Contempladas
-
-<details>
-<summary><b>Ver roadmap de tecnologías</b></summary>
-
-<br>
-
-**Fase 2 - FastAPI:**
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat)
-![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat)
-
-**Fase 3 - Lenguaje Compilado:**
-![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white)
-![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat&logo=spring-boot&logoColor=white)
-![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-
-**Fase 4 - Cloud & DevOps:**
-![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazon-aws&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat&logo=terraform&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=github-actions&logoColor=white)
-
-</details>
+**Estado:** Objetivo final
 
 ---
 
-## Estado Actual
+## Implementaciones
 
-**Fase:** 1 - Flask MVP
-**Progreso:** ![](https://img.shields.io/badge/Completado-60%25-yellow?style=flat)
+| Rama | Stack | Estado |
+|:-----|:------|:-------|
+| **[v1-flask](../../tree/v1-flask)** | Flask + MySQL | Completado |
+| v2-fastapi | FastAPI + PostgreSQL | Próximamente |
+| v3-go | Go + PostgreSQL | Planificado |
 
-### Implementado
-
-- [x] Estructura base del proyecto
-- [x] Configuración Docker Compose
-- [x] Schema de base de datos
-- [x] Endpoint POST `/transactions` (AUTH, CAPTURE, REFUND)
-- [x] Validación de reglas de negocio
-- [x] Idempotencia (`merchant_id` + `order_reference`)
-- [x] Connection pooling MySQL
-- [x] Endpoints GET (consulta de transacciones)
-  - `GET /transactions` - Listar todas las transacciones
-  - `GET /transactions/:id` - Obtener transacción por ID
-- [x] Refactorización a arquitectura en capas (services + errors)
-
-### Pendiente
-
-- [ ] Endpoints PATCH (actualización de estado)
-- [ ] Tests unitarios y de integración
-- [ ] Documentación OpenAPI
-- [ ] Logging estructurado
-- [ ] Manejo avanzado de errores
+Cada rama tiene código completo, README con documentación, ejemplos de uso y aprendizajes.
 
 ---
 
-## Inicio Rápido
+## Cómo navegar
 
-### Prerequisitos
-
-![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?style=flat&logo=docker&logoColor=white)
-![Docker Compose](https://img.shields.io/badge/Docker_Compose-1.29+-2496ED?style=flat&logo=docker&logoColor=white)
-
-### Instalación
-
+**Ver una implementación:**
 ```bash
-# Clonar repositorio
 git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
 cd asgard-transactions-api-rest
+git checkout v1-flask      # o v2-fastapi, v3-go
+```
 
-# Levantar servicios
-docker-compose up -d
+**Comparar implementaciones:**
+```bash
+git diff v1-flask v2-fastapi                 # ver cambios
+git diff --stat v1-flask v2-fastapi          # ver estadísticas
+```
 
-# Ver logs
-docker-compose logs -f app
-
-# Verificar estado
-docker-compose ps
+**Estructura de branches:**
+```
+main         → Plan general (estás aquí)
+├── v1-flask → Implementación Flask
+├── v2-fastapi → Implementación FastAPI
+└── v3-go      → Implementación Go
 ```
 
 ---
 
-## Estructura del Proyecto
-
-```
-asgard-transactions-api-rest/
-│
-├── src/                    # Código fuente
-│   ├── app.py             # Aplicación Flask y rutas (routing)
-│   ├── services.py        # Lógica de negocio
-│   ├── db.py              # Capa de acceso a datos
-│   ├── errors.py          # Excepciones personalizadas
-│   └── utils.py           # Utilidades
-│
-├── db/                     # Scripts de base de datos
-│   └── init.sql           # Schema DDL
-│
-├── docker-compose.yml      # Orquestación de servicios
-├── Dockerfile             # Imagen Docker
-└── requirements.txt       # Dependencias Python
-```
-
----
-
-## Workflow de Desarrollo
-
-**Estrategia:** GitFlow
-
-| Branch | Propósito |
-|:-------|:----------|
-| `main` | Releases estables |
-| `develop` | Desarrollo activo |
-| `feature/*` | Nuevas funcionalidades |
-| `hotfix/*` | Correcciones urgentes |
-
----
-
-<div align="center">
-
-**Proyecto experimental de aprendizaje**
-
-![Made with](https://img.shields.io/badge/Made_with-Python-3776AB?style=flat&logo=python&logoColor=white)
-![Built with](https://img.shields.io/badge/Built_with-Flask-000000?style=flat&logo=flask&logoColor=white)
-![Powered by](https://img.shields.io/badge/Powered_by-Docker-2496ED?style=flat&logo=docker&logoColor=white)
-
-</div>
+**[Ver implementación Flask](../../tree/v1-flask)** · [Issues](../../issues)
