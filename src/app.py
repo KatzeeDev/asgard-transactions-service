@@ -6,11 +6,17 @@ import os
 import logging
 from dotenv import load_dotenv
 from flask import Flask, jsonify
+from utils import CustomJSONProvider
+from exceptions import register_error_handlers
+from werkzeug.exceptions import (
+    BadRequest,
+    MethodNotAllowed,
+    NotFound,
+    InternalServerError,
+)
 
-# Load environment variables
 load_dotenv()
 
-# logging setup
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -18,22 +24,25 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# register blueprints
+app.json = CustomJSONProvider(app)
+
 from routes.transactions import transactions_bp
 
 app.register_blueprint(transactions_bp)
 
-
-# global error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "endpoint not found"}), 404
+register_error_handlers(app)
 
 
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"internal error: {error}")
-    return jsonify({"error": "internal server error"}), 500
+@app.errorhandler(BadRequest)
+def handle_bad_request_override(error):
+    logger.warning(f"bad request intercepted: {error.description}")
+    return jsonify({"error": "invalid json"}), 400
+
+
+@app.errorhandler(MethodNotAllowed)
+def handle_method_not_allowed_override(error):
+    logger.warning(f"method not allowed: {error.description}")
+    return jsonify({"error": "method not allowed"}), 405
 
 
 if __name__ == "__main__":

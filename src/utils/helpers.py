@@ -2,16 +2,26 @@
 helper functions for the application
 """
 
-import secrets
-from datetime import datetime
+import hashlib
+import time
+from ulid import ULID
 
 
-def generate_transaction_id(transaction_type):
+def generate_transaction_id():
+    """generate unique transaction id using ULID"""
+    return str(ULID())
+
+
+def generate_idempotency_key(
+    merchant_id, order_reference, amount, currency, transaction_type, country_code
+):
     """
-    generate unique transaction id
-    format: TXN_YYYYMMDD_HHMMSS_TYPE_RANDOM
-    example: TXN_20250110_143052_AUTH_a3f9k2p8
+    generate idempotency fingerprint
+    works with 5-minute temporal window detects duplicate requests within window.
+    allows retries after
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    random_suffix = secrets.token_hex(4)  # 8 hex chars for uniqueness
-    return f"TXN_{timestamp}_{transaction_type}_{random_suffix}"
+    current_time = int(time.time())
+    window = int(current_time / 300) * 300
+
+    fingerprint = f"{merchant_id}|{order_reference}|{amount}|{currency}|{transaction_type}|{country_code}|{window}"
+    return hashlib.sha256(fingerprint.encode()).hexdigest()

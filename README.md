@@ -4,194 +4,276 @@
 ![Flask](https://img.shields.io/badge/flask-3.1-black?style=flat-square)
 ![MySQL](https://img.shields.io/badge/mysql-8.0-blue?style=flat-square)
 
-> **v1 Flask MVP** — Primera iteración del servicio de transacciones usando Flask + MySQL
+> **v1 Flask MVP** — API REST para transacciones de pago con idempotencia automática
 
-API REST para gestión de transacciones de pago que implementa el flujo AUTH → CAPTURE → REFUND con idempotencia y validación de reglas de negocio.
-
-**Parte de un experimento** donde construyo el mismo servicio con diferentes tecnologías (Flask, FastAPI, Go) para comparar enfoques arquitectónicos.
-
----
-
-## Tabla de Contenidos
-
-- [Características](#características)
-- [Inicio Rápido](#inicio-rápido)
-- [Uso de la API](#uso-de-la-api)
-- [Reglas de Negocio](#reglas-de-negocio)
-- [Arquitectura](#arquitectura)
-- [Estado del Proyecto](#estado-del-proyecto)
-- [Stack Tecnológico](#stack-tecnológico)
-- [Comandos Útiles](#comandos-útiles)
-- [Aprendizajes](#aprendizajes)
-
----
-
-## Características
-
-**Operaciones soportadas:**
-- **AUTH** — Autorización de pago (reserva fondos)
-- **CAPTURE** — Captura de fondos autorizados
-- **REFUND** — Devolución de transacciones
-
-**Features implementados:**
-- Validación de flujo de transacciones
-- Idempotencia garantizada con constraint único en BD (`merchant_id + order_reference`)
-- Tracking de errores y ubicación para analytics
-- Connection pooling con singleton pattern
-- Arquitectura en 3 capas (routes → services → db)
-- Manejo de errores con excepciones personalizadas
-- Protección de datos sensibles en respuestas
-- Docker ready
+Servicio de transacciones que implementa el flujo AUTH → CAPTURE → REFUND con arquitectura en 3 capas, validación de reglas de negocio e idempotencia basada en fingerprint temporal.
 
 ---
 
 ## Inicio Rápido
 
-**Prerequisitos:**
-- Docker 20.10+
-- Docker Compose 1.29+
+**Prerequisitos:** Docker 20.10+ y Docker Compose 1.29+
 
-**Instalación con Docker (recomendado):**
 ```bash
 git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
 cd asgard-transactions-api-rest
-git checkout v1-flask-mvp
-
 docker-compose up -d
 ```
 
-La API estará disponible en `http://localhost:5001`
+API disponible en `http://localhost:5001`
 
 **Verificar:**
+
 ```bash
 curl http://localhost:5001/transactions
 ```
 
-**Instalación local (sin Docker):**
-
-Si prefieres correr la aplicación sin Docker:
-
-```bash
-# Clonar repositorio
-git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
-cd asgard-transactions-api-rest
-git checkout v1-flask-mvp
-
-# Crear entorno virtual
-python3 -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus credenciales de MySQL
-
-# Ejecutar la aplicación
-cd src
-python app.py
-```
-
-> **Nota:** Necesitarás una instancia de MySQL corriendo localmente. Configurar host, usuario, contraseña y base de datos en `.env`
-
 ---
 
-## Uso de la API
+## API Endpoints
 
-**Endpoints disponibles:**
+| Método   | Endpoint            | Descripción       |
+| -------- | ------------------- | ----------------- |
+| `POST`   | `/transactions`     | Crear transacción |
+| `GET`    | `/transactions`     | Listar todas      |
+| `GET`    | `/transactions/:id` | Obtener por ID    |
+| `PATCH`  | `/transactions/:id` | Actualizar status |
+| `DELETE` | `/transactions/:id` | Eliminar          |
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/transactions` | Crear nueva transacción |
-| `GET` | `/transactions` | Listar todas las transacciones |
-| `GET` | `/transactions/:id` | Obtener transacción por ID |
-| `PATCH` | `/transactions/:id` | Actualizar estado de transacción |
-| `DELETE` | `/transactions/:id` | Eliminar transacción |
+### Crear AUTH
 
-**Ejemplo 1: Crear AUTH**
 ```json
-POST http://localhost:5001/transactions
-
+POST /transactions
 {
   "type": "AUTH",
-  "amount": 15000.50,
+  "amount": 150000,
   "currency": "CLP",
-  "merchant_id": "MCH_001",
-  "order_reference": "ORDER_2025_001",
-  "location": "Santiago, Chile",
+  "merchant_id": "MERCH_001",
+  "order_reference": "ORDER_001",
+  "country_code": "CL",
   "metadata": {
-    "product": "Laptop Dell XPS 15"
+    "customer_email": "user@example.com",
+    "product": "Laptop"
   }
 }
 ```
 
-**Campos opcionales adicionales:**
-- `location` — Ubicación de la compra para analytics y detección de fraude
-- `error_code` — Código de error estandarizado (ej: "INSUFFICIENT_FUNDS")
-- `error_message` — Descripción detallada del error (solo visible en GET individual)
+**Respuesta:**
 
-**Ejemplo 2: Crear CAPTURE**
 ```json
-POST http://localhost:5001/transactions
-
 {
-  "type": "CAPTURE",
-  "amount": 15000.50,
-  "currency": "CLP",
-  "merchant_id": "MCH_001",
-  "order_reference": "CAPTURE_001",
-  "parent_transaction_id": "TXN_20251110_220654_AUTH_a1b341c7"
+    "id": "01KA24B5K02M1P121JGF8P6DR4",
+    "message": "transaction created successfully",
+    "status": "PENDING"
 }
 ```
 
-**Ejemplo 3: Actualizar estado**
-```json
-PATCH http://localhost:5001/transactions/TXN_20251110_220654_AUTH_a1b341c7
+### Crear CAPTURE
 
+```json
+POST /transactions
+{
+  "type": "CAPTURE",
+  "amount": 150000,
+  "currency": "CLP",
+  "merchant_id": "MERCH_001",
+  "order_reference": "ORDER_001_CAP",
+  "country_code": "CL",
+  "parent_id": "01KA24B5K02M1P121JGF8P6DR4"
+}
+```
+
+### Crear REFUND
+
+```json
+POST /transactions
+{
+  "type": "REFUND",
+  "amount": 50000,
+  "currency": "CLP",
+  "merchant_id": "MERCH_001",
+  "order_reference": "ORDER_001_REF",
+  "country_code": "CL",
+  "parent_id": "01KA23Y6PQ3W1F45GWEBPPZVRN",
+  "metadata": {
+    "reason": "customer_request"
+  }
+}
+```
+
+### Actualizar Status
+
+```json
+PATCH /transactions/01KA24B5K02M1P121JGF8P6DR4
 {
   "status": "APPROVED"
 }
 ```
 
-**Estados válidos:** `PENDING`, `APPROVED`, `DECLINED`
-**Monedas soportadas:** `CLP`, `USD`, `EUR`
+---
+
+## Tipos de Transacciones
+
+| Tipo      | Requiere Padre      | Descripción                          |
+| --------- | ------------------- | ------------------------------------ |
+| `AUTH`    | No                  | Autorización inicial, reserva fondos |
+| `CAPTURE` | Sí (AUTH)           | Captura fondos autorizados           |
+| `REFUND`  | Sí (AUTH o CAPTURE) | Devolución de fondos                 |
+
+**Estados:** `PENDING`, `PROCESSING`, `APPROVED`, `DECLINED`, `EXPIRED`, `CANCELLED`, `FAILED`
+**Monedas:** `CLP`, `USD`, `EUR`, `GBP`
+**Países:** `CL`, `US`, `ES`, `GB`, `SE`, `BR`, `AR`, `MX`, `CO`, `PE`, `UY`
 
 ---
 
-## Reglas de Negocio
+## Idempotencia
 
-**Flujo de transacciones:**
+El sistema genera automáticamente un **fingerprint** basado en:
+
 ```
-AUTH (inicio) → CAPTURE (captura fondos) → REFUND (devuelve fondos)
+merchant_id + order_reference + amount + currency + type + country_code + ventana_temporal
 ```
 
-**Tipos de transacción:**
+**Ventana temporal:** 5 minutos
 
-- **AUTH** — Primera transacción en el flujo. No requiere transacción padre.
-- **CAPTURE** — Requiere transacción AUTH como padre. Captura fondos previamente autorizados.
-- **REFUND** — Requiere transacción AUTH o CAPTURE como padre. Devuelve fondos al cliente.
+**Comportamiento:**
 
-**Idempotencia:**
+-   Requests idénticas dentro de 5 min → retorna transacción existente
+-   Mismo order pero diferente monto → crea nueva transacción
+-   Retry después de 5 min → crea nueva transacción
 
-Las transacciones son idempotentes basadas en `merchant_id + order_reference`. Si se intenta crear una transacción con la misma combinación, se retorna la existente en lugar de crear un duplicado.
+**Ejemplo - Duplicado detectado:**
 
-La idempotencia está garantizada a **dos niveles**:
-1. **Aplicación** — Verifica duplicados antes de insertar
-2. **Base de Datos** — Constraint único `UNIQUE(merchant_id, order_reference)` previene race conditions
+```bash
+# Request 1
+POST {merchant: "X", order: "O1", amount: 1000}
+→ 201 Created: id=ABC123
 
-**Tracking de errores y ubicación:**
+# Request 2 (30 seg después, valores idénticos)
+POST {merchant: "X", order: "O1", amount: 1000}
+→ 200 OK: id=ABC123, message="transaction already exists"
+```
 
-Nuevos campos opcionales para analytics y debugging:
-- `error_code` — Código estandarizado para clasificar errores
-- `error_message` — Detalle técnico del error (solo visible en GET individual por seguridad)
-- `location` — Ubicación de la compra para analytics y detección de fraude
+**Ejemplo - Monto diferente:**
+
+```bash
+# Request 1
+POST {merchant: "X", order: "O1", amount: 1000}
+→ 201 Created: id=ABC123
+
+# Request 2 (mismo order, diferente monto)
+POST {merchant: "X", order: "O1", amount: 500}
+→ 201 Created: id=DEF456
+```
+
+---
+
+## Manejo de Errores
+
+### Respuestas HTTP
+
+| Código | Significado                             |
+| ------ | --------------------------------------- |
+| `200`  | Operación exitosa o duplicado detectado |
+| `201`  | Transacción creada                      |
+| `400`  | Error de validación                     |
+| `404`  | Transacción no encontrada               |
+| `500`  | Error interno del servidor              |
+
+### Errores de Validación (400)
+
+```json
+{
+    "error": "amount must be greater than zero"
+}
+```
+
+**Errores comunes:**
+
+-   `"invalid json"` - JSON malformado
+-   `"type is required"` - Campo obligatorio faltante
+-   `"currency must be one of CLP, USD, EUR, GBP"` - Moneda inválida
+-   `"country_code must be one of CL, US, ES, ..."` - País no soportado
+-   `"CAPTURE requires parent_id"` - Falta referencia a transacción padre
+-   `"parent transaction not found"` - Parent ID inválido
+-   `"capture must reference an auth transaction"` - Padre incorrecto
+-   `"auth cannot have parent_id"` - AUTH no puede tener padre
+
+### Errores de Negocio (404)
+
+```json
+{
+    "error": "transaction 01KA24B5... not found"
+}
+```
+
+### Campo error_code (Opcional)
+
+Al crear una transacción puedes incluir `error_code` para tracking:
+
+```json
+POST /transactions
+{
+  "type": "AUTH",
+  "amount": 1000,
+  "currency": "USD",
+  "merchant_id": "MERCH_001",
+  "order_reference": "ORDER_FAILED",
+  "country_code": "US",
+  "error_code": "INSUFFICIENT_FUNDS"
+}
+```
+
+**Códigos estándar recomendados:**
+
+-   `INSUFFICIENT_FUNDS` - Fondos insuficientes
+-   `CARD_EXPIRED` - Tarjeta expirada
+-   `INVALID_CARD` - Tarjeta inválida
+-   `DECLINED_BY_ISSUER` - Rechazada por banco emisor
+-   `NETWORK_ERROR` - Error de red/comunicación
+-   `FRAUD_SUSPECTED` - Fraude detectado
+-   `LIMIT_EXCEEDED` - Límite excedido
+-   `AUTHENTICATION_FAILED` - Fallo de autenticación
+
+---
+
+## Schema de Base de Datos
+
+```sql
+CREATE TABLE transactions (
+  id CHAR(26) PRIMARY KEY,                    -- ULID
+  idempotency_key VARCHAR(64) UNIQUE NOT NULL,-- Hash SHA256
+  type ENUM('AUTH','CAPTURE','REFUND'),
+  status ENUM('PENDING','PROCESSING','APPROVED','DECLINED',
+              'EXPIRED','CANCELLED','FAILED') DEFAULT 'PENDING',
+  amount DECIMAL(12,2) NOT NULL CHECK (amount > 0),
+  currency ENUM('CLP','USD','EUR','GBP') NOT NULL,
+  merchant_id VARCHAR(32) NOT NULL,
+  order_reference VARCHAR(128) NOT NULL,
+  parent_id CHAR(26) NULL,
+  country_code CHAR(2) NOT NULL CHECK (country_code REGEXP '^[A-Z]{2}$'),
+  metadata JSON NULL,
+  error_code VARCHAR(64) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  status_updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  processed_at TIMESTAMP(3) NULL,
+
+  FOREIGN KEY (parent_id) REFERENCES transactions(id) ON DELETE RESTRICT
+);
+```
+
+**Características:**
+
+-   IDs usando ULID (26 chars, ordenables, URL-friendly)
+-   Timestamps con precisión de milisegundos
+-   Validaciones a nivel DB (CHECKs)
+-   Idempotencia por fingerprint único
+-   Jerarquía con FK para integridad referencial
 
 ---
 
 ## Arquitectura
 
-**Estructura del proyecto:**
 ```
 src/
 ├── app.py                      # Punto de entrada Flask
@@ -199,141 +281,79 @@ src/
 ├── routes/
 │   └── transactions.py         # Endpoints HTTP
 ├── services/
-│   └── transaction_service.py  # Lógica de negocio y validaciones
+│   └── transaction_service.py  # Lógica de negocio
 ├── db/
-│   ├── connection.py           # Connection pool (singleton)
+│   ├── connection.py           # Connection pool
 │   └── queries.py              # Queries SQL
 └── utils/
-    └── helpers.py              # Funciones auxiliares
+    ├── helpers.py              # ULID, fingerprint
+    └── json_utils.py           # Serialización ISO 8601
 ```
 
-**Capas de la aplicación:**
+**Flujo de capas:**
+
 ```
-┌─────────────────────────────────────┐
-│         HTTP Layer (Flask)          │  ← routes/
-├─────────────────────────────────────┤
-│    Business Logic & Validation      │  ← services/
-├─────────────────────────────────────┤
-│       Data Access Layer (SQL)       │  ← db/
-├─────────────────────────────────────┤
-│           MySQL Database            │
-└─────────────────────────────────────┘
+HTTP Request → Routes → Services → DB Queries → MySQL
+             ↓          ↓           ↓
+          Validación  Reglas de   Connection
+           de input   negocio      Pool
 ```
-
-**Patrones implementados:**
-- **Separation of Concerns** — Cada capa tiene una responsabilidad única
-- **Singleton Pattern** — Connection pool reutilizable
-- **Dependency Flow** — Unidireccional (routes → services → db)
-
----
-
-## Estado del Proyecto
-
-**Completado:**
-- [x] Estructura base con arquitectura en capas
-- [x] Configuración Docker Compose
-- [x] Schema de base de datos MySQL
-- [x] CRUD completo de transacciones
-- [x] Validación de reglas de negocio
-- [x] Idempotencia garantizada (aplicación + BD)
-- [x] Constraint único en BD (`merchant_id + order_reference`)
-- [x] Campos de tracking (error_code, error_message, location)
-- [x] Protección de datos sensibles (error_message no expuesto en listas)
-- [x] Connection pooling con singleton pattern
-- [x] Manejo de errores estructurado
-- [x] Logging
-
-**Pendiente:**
-- [ ] Tests unitarios con pytest
-- [ ] Métricas básicas (contadores por tipo/estado)
-- [ ] Dashboard web para visualización
-- [ ] Optimización de queries
-
-**Deliberadamente no implementado:**
-
-Estas features se implementarán en la **Fase 2 (FastAPI)** donde son nativas:
-- OpenAPI/Swagger automático
-- Pydantic schemas para validación
-- Validación declarativa de requests
-- Type hints avanzados
-
----
-
-## Stack Tecnológico
-
-| Componente | Tecnología | Versión |
-|------------|------------|---------|
-| Lenguaje | Python | 3.11+ |
-| Framework Web | Flask | 3.1.2 |
-| Base de Datos | MySQL | 8.0 |
-| Containerización | Docker | 20.10+ |
-| Orquestación | Docker Compose | 1.29+ |
 
 ---
 
 ## Comandos Útiles
 
 ```bash
-# Ver logs en tiempo real
+# Ver logs
 docker-compose logs -f app
 
-# Detener servicios
+# Detener
 docker-compose down
 
-# Reconstruir contenedores
+# Reconstruir
 docker-compose up -d --build
 
-# Limpiar volúmenes (borra datos)
+# Limpiar volúmenes
 docker-compose down -v
 
-# Acceder al contenedor
-docker exec -it asgard_api bash
-
-# Conectar a MySQL
-docker exec -it asgard_db mysql -u root -p
+# MySQL CLI
+docker exec -it asgard_db mysql -uasgard_user -pasgard_pass -D asgard_transactions
 ```
 
 ---
 
-## Aprendizajes
+## Stack Tecnológico
 
-**Arquitectura en capas**
+| Componente       | Tecnología  | Versión |
+| ---------------- | ----------- | ------- |
+| Lenguaje         | Python      | 3.11+   |
+| Framework        | Flask       | 3.1.2   |
+| Base de Datos    | MySQL       | 8.0     |
+| ID Generation    | python-ulid | 3.0.0   |
+| Containerización | Docker      | 20.10+  |
 
-Separar en routes/services/db simplificó el debugging y mantenimiento. Al principio tenía todo en un solo archivo y cada cambio afectaba múltiples responsabilidades. Con la separación, cada capa tiene un propósito claro.
+---
 
-**Connection pooling**
+## Completado
 
-Implementé un pool de 5 conexiones MySQL reutilizables usando singleton pattern. La diferencia de latencia vs crear conexiones nuevas en cada request fue notable, especialmente en operaciones repetitivas.
-
-**Validación centralizada**
-
-Toda la lógica de negocio (AUTH → CAPTURE → REFUND) vive en la capa de services. Los routes solo manejan HTTP. Esto garantiza que las validaciones sean consistentes sin importar desde dónde se invoquen.
-
-**Idempotencia multinivel**
-
-Implementé validación en la aplicación + constraint único en la BD. La combinación de ambos niveles garantiza que no se creen duplicados incluso bajo race conditions. El constraint `UNIQUE(merchant_id, order_reference)` actúa como última línea de defensa.
-
-**Protección de datos sensibles**
-
-Los campos de error (`error_code`, `error_message`, `location`) son útiles para debugging pero `error_message` puede contener información sensible. En el endpoint GET list solo exponemos `error_code` y `location`, mientras que `error_message` solo está disponible en GET individual. Esto balancea necesidades de debugging con seguridad.
-
-**Flask para MVPs**
-
-Setup directo, documentación clara, y con Docker el deployment es simple. Perfecto para entender fundamentos antes de saltar a frameworks más complejos.
-
-**Próximo experimento:**
-
-Reimplementar este mismo servicio con FastAPI para comparar:
-- Performance async vs sync
-- Developer experience con features automáticas (OpenAPI, Pydantic)
-- Tiempo de desarrollo
+-   [x] Arquitectura en 3 capas (routes/services/db)
+-   [x] CRUD completo de transacciones
+-   [x] Validación de reglas de negocio (AUTH→CAPTURE→REFUND)
+-   [x] Idempotencia automática con fingerprint temporal (5 min)
+-   [x] IDs usando ULID (ordenables, 26 chars)
+-   [x] Timestamps con milisegundos (ISO 8601)
+-   [x] Connection pooling con singleton
+-   [x] Manejo de errores estructurado
+-   [x] Validaciones a nivel DB (CHECKs)
+-   [x] Serialización JSON custom (remove nulls)
+-   [x] Docker Compose ready
 
 ---
 
 <div align="center">
 
-**v1 Flask MVP** · Fase 1 de 4
+**v1 Flask MVP**
 
-[Ver proyecto completo](../../tree/main) · [Issues](../../issues)
+[Ver proyecto](../../tree/main) · [Issues](../../issues)
 
 </div>

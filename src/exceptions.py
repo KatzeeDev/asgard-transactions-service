@@ -42,42 +42,26 @@ class NotFoundError(AppError):
         super().__init__(message, status_code=404, payload=payload)
 
 
-class DuplicateError(AppError):
-    """resource already exists"""
-
-    def __init__(self, message, payload=None):
-        super().__init__(message, status_code=409, payload=payload)
-
-
-class DatabaseError(AppError):
-    """database operation error"""
-
-    def __init__(self, message, payload=None):
-        super().__init__(message, status_code=500, payload=payload)
-
-
 def register_error_handlers(app):
-
-    @app.errorhandler(AppError)
-    def handle_app_error(error):
-        logger.warning(f"app error: {error.message}")
-        response = jsonify(error.to_dict())
-        response.status_code = error.status_code
-        return response
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(error):
         logger.warning(f"validation error: {error.message}")
-        response = jsonify(error.to_dict())
-        response.status_code = error.status_code
-        return response
+        return jsonify(error.to_dict()), error.status_code
 
     @app.errorhandler(NotFoundError)
     def handle_not_found_error(error):
         logger.info(f"resource not found: {error.message}")
-        response = jsonify(error.to_dict())
-        response.status_code = error.status_code
-        return response
+        return jsonify(error.to_dict()), error.status_code
+
+    @app.errorhandler(AppError)
+    def handle_app_error(error):
+        logger.warning(f"app error: {error.message}")
+        return jsonify(error.to_dict()), error.status_code
+
+    @app.errorhandler(400)
+    def handle_400(error):
+        return jsonify({"error": "bad request"}), 400
 
     @app.errorhandler(404)
     def handle_404(error):
@@ -94,10 +78,10 @@ def register_error_handlers(app):
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(error):
-        logger.warning(f"http exception: {error}")
-        return jsonify({"error": error.description}), error.code
+        logger.warning(f"http exception {error.code}: {error.description}")
+        return jsonify({"error": error.description or str(error)}), error.code
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         logger.error(f"unexpected error: {error}", exc_info=True)
-        return jsonify({"error": "an unexpected error occurred"}), 500
+        return jsonify({"error": "internal server error"}), 500

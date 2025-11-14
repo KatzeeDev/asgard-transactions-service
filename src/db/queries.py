@@ -10,29 +10,25 @@ from db.connection import get_connection
 logger = logging.getLogger(__name__)
 
 
-def get_transaction_by_order(merchant_id, order_reference):
-    """
-    check if transaction exists by merchant and order -> used for idempotency
-    """
+def get_transaction_by_idempotency_key(idempotency_key):
+    """find transaction by idempotency key"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
         cursor.execute(
             """
-            SELECT transaction_id, type, amount, currency, merchant_id,
-                   order_reference, parent_transaction_id, metadata, status,
-                   error_code, error_message, location,
-                   created_at, updated_at
+            SELECT id, idempotency_key, type, amount, currency,
+                   merchant_id, order_reference, parent_id, metadata, status,
+                   error_code, country_code, created_at, status_updated_at, processed_at
             FROM transactions
-            WHERE merchant_id = %s AND order_reference = %s
+            WHERE idempotency_key = %s
         """,
-            (merchant_id, order_reference),
+            (idempotency_key,),
         )
 
         result = cursor.fetchone()
 
-        # parse json metadata
         if result and result.get("metadata"):
             result["metadata"] = json.loads(result["metadata"])
 
@@ -50,12 +46,11 @@ def get_transaction_by_id(transaction_id):
     try:
         cursor.execute(
             """
-            SELECT transaction_id, type, amount, currency, merchant_id,
-                   order_reference, parent_transaction_id, metadata, status,
-                   error_code, error_message, location,
-                   created_at, updated_at
+            SELECT id, idempotency_key, type, amount, currency,
+                   merchant_id, order_reference, parent_id, metadata, status,
+                   error_code, country_code, created_at, status_updated_at, processed_at
             FROM transactions
-            WHERE transaction_id = %s
+            WHERE id = %s
         """,
             (transaction_id,),
         )
@@ -79,10 +74,9 @@ def get_all_transactions():
     try:
         cursor.execute(
             """
-            SELECT transaction_id, type, amount, currency, merchant_id,
-                   order_reference, parent_transaction_id, metadata, status,
-                   error_code, location,
-                   created_at, updated_at
+            SELECT id, idempotency_key, type, amount, currency,
+                   merchant_id, order_reference, parent_id, metadata, status,
+                   error_code, country_code, created_at, status_updated_at, processed_at
             FROM transactions
             ORDER BY created_at DESC
         """
@@ -102,17 +96,17 @@ def get_all_transactions():
 
 def insert_transaction(
     transaction_id,
+    idempotency_key,
     transaction_type,
     amount,
     currency,
     merchant_id,
     order_reference,
-    parent_transaction_id=None,
+    country_code,
+    parent_id=None,
     metadata=None,
     status="PENDING",
     error_code=None,
-    error_message=None,
-    location=None,
 ):
     """create new transaction in database"""
     conn = get_connection()
@@ -125,24 +119,24 @@ def insert_transaction(
         cursor.execute(
             """
             INSERT INTO transactions (
-                transaction_id, type, amount, currency, merchant_id,
-                order_reference, parent_transaction_id, metadata, status,
-                error_code, error_message, location
+                id, idempotency_key, type, amount, currency, merchant_id,
+                order_reference, parent_id, metadata, status,
+                error_code, country_code
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
             (
                 transaction_id,
+                idempotency_key,
                 transaction_type,
                 amount,
                 currency,
                 merchant_id,
                 order_reference,
-                parent_transaction_id,
+                parent_id,
                 metadata_json,
                 status,
                 error_code,
-                error_message,
-                location,
+                country_code,
             ),
         )
 
@@ -152,12 +146,6 @@ def insert_transaction(
 
     except mysql.connector.IntegrityError as e:
         conn.rollback()
-        if "Duplicate entry" in str(e):
-            raise ValueError(f"transaction {transaction_id} already exists")
-        elif "foreign key constraint" in str(e).lower():
-            raise ValueError(
-                f"parent transaction {parent_transaction_id} does not exist"
-            )
         raise
     except Exception as e:
         conn.rollback()
@@ -169,12 +157,17 @@ def insert_transaction(
 
 
 def update_transaction_status(transaction_id, new_status):
-    """change transaction status"""
+    """change transaction status and update status_updated_at"""
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # update status and status_updated_at timestamp
         cursor.execute(
-            "UPDATE transactions SET status = %s WHERE transaction_id = %s",
+            """
+            UPDATE transactions
+            SET status = %s, status_updated_at = CURRENT_TIMESTAMP(3)
+            WHERE id = %s
+            """,
             (new_status, transaction_id),
         )
         conn.commit()
@@ -192,13 +185,37 @@ def update_transaction_status(transaction_id, new_status):
         conn.close()
 
 
+def set_processed_timestamp(transaction_id):
+    """set processed_at timestamp when transaction completes"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE transactions
+            SET processed_at = CURRENT_TIMESTAMP(3)
+            WHERE id = %s AND processed_at IS NULL
+            """,
+            (transaction_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"error setting processed_at: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def delete_transaction(transaction_id):
     """remove transaction from database"""
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "DELETE FROM transactions WHERE transaction_id = %s",
+            "DELETE FROM transactions WHERE id = %s",
             (transaction_id,),
         )
         conn.commit()
@@ -209,8 +226,6 @@ def delete_transaction(transaction_id):
         return True
     except mysql.connector.IntegrityError as e:
         conn.rollback()
-        if "foreign key constraint" in str(e).lower():
-            raise ValueError("cannot delete transaction: it has child transactions")
         raise
     except Exception as e:
         conn.rollback()
