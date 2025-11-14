@@ -17,6 +17,7 @@ Servicio de transacciones que implementa el flujo AUTH → CAPTURE → REFUND co
 ```bash
 git clone https://github.com/KatzeeDev/asgard-transactions-api-rest.git
 cd asgard-transactions-api-rest
+cp env.template .env  # Generar archivo de entorno
 docker-compose up -d
 ```
 
