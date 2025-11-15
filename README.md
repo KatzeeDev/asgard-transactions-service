@@ -317,8 +317,14 @@ docker-compose up -d --build
 # Limpiar volúmenes
 docker-compose down -v
 
-# MySQL CLI
+# MySQL CLI (Docker)
 docker exec -it asgard_db mysql -uasgard_user -pasgard_pass -D asgard_transactions
+
+# Ejecutar tests (requiere .venv activado y Docker corriendo)
+DB_HOST=localhost .venv/bin/pytest tests/ -v
+
+# Tests con cobertura (87%)
+DB_HOST=localhost .venv/bin/pytest tests/ --cov=src --cov-report=term-missing
 ```
 
 ---
@@ -348,6 +354,7 @@ docker exec -it asgard_db mysql -uasgard_user -pasgard_pass -D asgard_transactio
 -   [x] Validaciones a nivel DB (CHECKs)
 -   [x] Serialización JSON custom (remove nulls)
 -   [x] Docker Compose ready
+-   [x] Tests unitarios
 
 ---
 
