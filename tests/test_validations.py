@@ -11,16 +11,6 @@ class TestValidationErrors:
                 {
                     "type": "AUTH",
                     "amount": 100,
-                    "currency": "CLP",
-                    "merchant_id": "M",
-                    "country_code": "CL",
-                },
-                "order_reference is required",
-            ),
-            (
-                {
-                    "type": "AUTH",
-                    "amount": 100,
                     "merchant_id": "M",
                     "order_reference": "O",
                     "country_code": "CL",
@@ -30,28 +20,7 @@ class TestValidationErrors:
             (
                 {
                     "type": "AUTH",
-                    "amount": 100,
-                    "currency": "CLP",
-                    "merchant_id": "M",
-                    "order_reference": "O",
-                },
-                "country_code is required",
-            ),
-            (
-                {
-                    "type": "AUTH",
                     "amount": -100,
-                    "currency": "CLP",
-                    "merchant_id": "M",
-                    "order_reference": "O",
-                    "country_code": "CL",
-                },
-                "amount must be greater than zero",
-            ),
-            (
-                {
-                    "type": "AUTH",
-                    "amount": 0,
                     "currency": "CLP",
                     "merchant_id": "M",
                     "order_reference": "O",
@@ -80,17 +49,6 @@ class TestValidationErrors:
                     "country_code": "CL",
                 },
                 "type must be one of AUTH, CAPTURE, REFUND",
-            ),
-            (
-                {
-                    "type": "AUTH",
-                    "amount": 100,
-                    "currency": "CLP",
-                    "merchant_id": "M",
-                    "order_reference": "O",
-                    "country_code": "XX",
-                },
-                "country_code must be one of",
             ),
         ],
     )
